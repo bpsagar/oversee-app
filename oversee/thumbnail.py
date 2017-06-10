@@ -9,8 +9,17 @@ class CannotGenerateThumbnail(Exception):
     pass
 
 
+def _resize_image(filepath, outfilepath, width):
+    """Resize, optimize and make the image progressive"""
+    image = Image.open(filepath)
+    ratio = image.size[0] / float(image.size[1])
+    height = int(width / ratio)
+    image = image.resize((width, height), Image.ANTIALIAS)
+    image.save(outfilepath, optimize=True, progressive=True)
+
+
 def create(filepath, outfilepath, width=200):
-    """Generates a thumbnail for a file with a default width of 100px and
+    """Generates a thumbnail for a file with a default width of 200px and
     height calculated based on the width/height ratio"""
     file_type = FileType.get_type(filepath=filepath)
 
@@ -19,13 +28,10 @@ def create(filepath, outfilepath, width=200):
 
     if file_type == FileType.video:
         video = VideoFileClip(filepath)
-        resized_video = video.resize(width=width)
         # Saving the frame from the center of the video
-        resized_video.save_frame(outfilepath, t=video.duration / 2.)
+        video.save_frame(outfilepath, t=video.duration / 2.)
+        _resize_image(
+            filepath=outfilepath, outfilepath=outfilepath, width=width)
 
     if file_type == FileType.image:
-        image = Image.open(filepath)
-        ratio = image.size[0] / float(image.size[1])
-        height = int(width / ratio)
-        image = image.resize((width, height), Image.ANTIALIAS)
-        image.save(outfilepath)
+        _resize_image(filepath=filepath, outfilepath=outfilepath, width=width)
